@@ -128,6 +128,7 @@ wire				clk_100;
 // Screens signals
 wire	[31:0]	pxl_x;
 wire	[31:0]	pxl_y;
+wire				frame;
 wire				h_sync_wire;
 wire				v_sync_wire;
 wire	[3:0]		vga_r_wire;
@@ -160,6 +161,12 @@ wire				draw_ghost;
 wire 				ghost_x_direction;
 wire	[31:0]	topLeft_x_ghost;
 wire	[31:0]	topLeft_y_ghost;
+
+// Starfield module
+wire	[3:0]		r_starfield;
+wire	[3:0]		g_starfield;
+wire	[3:0]		b_starfield;
+wire				draw_starfield;
 
 // Periphery signals
 wire	A;
@@ -197,6 +204,7 @@ Screens_dispaly Screen_control(
 	.Blue_level(Blue_level),
 	.pxl_x(pxl_x),
 	.pxl_y(pxl_y),
+	.frame,
 	.Red(vga_r_wire),
 	.Green(vga_g_wire),
 	.Blue(vga_b_wire),
@@ -267,10 +275,10 @@ periphery_control periphery_control_inst(
 Drawing_priority drawing_mux(
 	.clk(clk_25),
 	.resetN(~A),
-	.RGB_1({r_intel,g_intel,b_intel}),
-	.draw_1(draw_intel),
-	.RGB_2({r_ghost,g_ghost,b_ghost}),
-	.draw_2(draw_ghost),
+	//.RGB_1({r_intel,g_intel,b_intel}),
+	//.draw_1(draw_intel),
+	.RGB_2({r_starfield,g_starfield,b_starfield}),
+	.draw_2(draw_starfield),
 	.RGB_bg(12'hFFF),
 	.Red_level(Red_level),
 	.Green_level(Green_level),
@@ -278,7 +286,7 @@ Drawing_priority drawing_mux(
 	);
 	
 // Intel object
-Intel_unit Intel_unit_inst(
+/*Intel_unit Intel_unit_inst(
 	.clk(clk_25),
 	.resetN(~A),
 	.Wheel(Wheel),
@@ -290,10 +298,10 @@ Intel_unit Intel_unit_inst(
 	.Green(g_intel),
 	.Blue(b_intel),
 	.Draw(draw_intel)
-	);
+	);*/
 
 // Ghost unit
-Ghost_unit  Ghost_unit_inst(	
+/*Ghost_unit  Ghost_unit_inst(	
 	.clk(clk_25),
 	.resetN(~A),
 	.collision(draw_intel && draw_ghost),
@@ -303,6 +311,19 @@ Ghost_unit  Ghost_unit_inst(
 	.Green(g_ghost),
 	.Blue(b_ghost),
 	.Draw(draw_ghost)
-);	
+);*/	
+
+Starfield_unit	Starfield_unit_inst(
+	.clk(clk_25),
+	.resetN(~A),
+	.Wheel(Wheel),
+	.pxl_x(pxl_x),
+	.pxl_y(pxl_y),
+	.frame(frame),
+	.Red(r_starfield),
+	.Green(g_starfield),
+	.Blue(b_starfield),
+	.Draw(draw_starfield)
+);
 
 endmodule

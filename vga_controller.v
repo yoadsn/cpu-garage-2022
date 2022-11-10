@@ -18,9 +18,14 @@ module vga_controller #(
    output reg h_sync,         // horizontal sync signal
    output reg v_sync,         // vertical sync signal
    output reg disp_ena,       // display enable (0 = all colors must be blank)
-   output reg [31:0] column,  // horizontal pixel coordinate
-   output reg [31:0] row      // vertical pixel coordinate
+   output reg [31:0] draw_column,  // horizontal pixel coordinate
+   output reg [31:0] draw_row,     // vertical pixel coordinate
+   output reg [31:0] render_column,  // horizontal pixel coordinate
+   output reg [31:0] render_row,     // vertical pixel coordinate
+	output reg frame           // frame end signal
    );
+
+   localparam DRAW_LAT = 1;
 
    // Get total number of row and column pixel clocks
    localparam h_period = h_pulse + h_bp + h_pixels + h_fp;
@@ -38,8 +43,10 @@ module vga_controller #(
          h_sync   <= ~ h_pol;
          v_sync   <= ~ v_pol;
          disp_ena <= 1'b0;
-         column   <= 0;
-         row      <= 0;
+         draw_column   <= 0;
+         draw_row      <= 0;
+         render_column   <= 0;
+         render_row      <= 0;
       end else begin
 
          // Pixel Counters
@@ -55,7 +62,8 @@ module vga_controller #(
          end
 
          // Horizontal Sync Signal
-         if ( (h_count < h_pixels + h_fp) || (h_count > h_pixels + h_fp + h_pulse) ) begin
+         // moved by DRAW_LAT forward to shift incoming RGB by DRAW_LAT
+         if ( (h_count < h_pixels + h_fp + DRAW_LAT) || (h_count > h_pixels + h_fp + h_pulse + DRAW_LAT) ) begin
             h_sync <= ~ h_pol;
          end else begin
             h_sync <= h_pol;
@@ -69,16 +77,30 @@ module vga_controller #(
          end
 
          // Update Pixel Coordinates
-         if (h_count < h_pixels) begin
-            column <= h_count;
+         if (h_count < h_pixels + DRAW_LAT) begin
+            if (DRAW_LAT <= h_count) begin
+               draw_column <= h_count - 1;
+            end
+            if (h_count < h_pixels) begin
+               render_column <= h_count;
+            end
          end
 
          if (v_count < v_pixels) begin
-            row <= v_count;
+            draw_row <= v_count;
+            render_row <= v_count;
+         end
+			
+			// Frame end signal
+			if (h_count == h_pixels - 1 && v_count == v_pixels - 1) begin
+            frame <= 1;
+         end else begin
+            frame <= 0;
          end
 
          // Set display enable output
-         if (h_count < h_pixels && v_count < v_pixels) begin
+         // Offset DRAW_LAT horizontally - enable drawing only when drawing X/Y in range
+         if (DRAW_LAT <= h_count && h_count < h_pixels + DRAW_LAT && v_count < v_pixels) begin
             disp_ena <= 1'b1;
          end else begin
             disp_ena <= 1'b0;
