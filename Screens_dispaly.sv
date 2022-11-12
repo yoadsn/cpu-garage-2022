@@ -4,16 +4,17 @@
 
 
 
-module Screens_dispaly (
-	
+module Screens_dispaly #(
+	parameter COLOR_DEPTH = 9
+)(
 	input					clk_25,
 	input					clk_100,
-	input		[3:0]		Red_level,
-	input		[3:0]		Green_level,
-	input		[3:0]		Blue_level,
+	input		[(COLOR_DEPTH/3)-1:0]		Red_level,
+	input		[(COLOR_DEPTH/3)-1:0]		Green_level,
+	input		[(COLOR_DEPTH/3)-1:0]		Blue_level,
 	output	[31:0]	pxl_x,
 	output	[31:0]	pxl_y,
-	output	[3:0]		Red,
+	output	[3:0]		Red, // output VGa expected to be 4bit per channel
 	output	[3:0]		Green,
 	output	[3:0]		Blue,
 	output				h_sync,
@@ -36,6 +37,8 @@ module Screens_dispaly (
 	wire	[31:0]	Pxl_y_e;
 	wire			frame_i;
 	
+	localparam COLOR_CH_WIDTH = COLOR_DEPTH / 3;
+	localparam LCD_COLOR_CH_PADDING = 4 - COLOR_CH_WIDTH;
 // VGA controller
  vga_controller VGA_interface (
 	.pixel_clk  (clk_25),
@@ -73,9 +76,9 @@ lcd_ctrl LCD_interface(
 
 
 // screen out display picker / enable
-assign Red_i = (disp_ena == 1'b1) ? Red_level : 4'b0000 ;
-assign Green_i = (disp_ena == 1'b1) ? Green_level : 4'b0000 ;
-assign Blue_i = (disp_ena == 1'b1) ? Blue_level : 4'b0000 ;
+assign Red_i = (disp_ena == 1'b1) ? {Red_level, {LCD_COLOR_CH_PADDING{1'b0}}} : {COLOR_CH_WIDTH{1'b0}};
+assign Green_i = (disp_ena == 1'b1) ? {Green_level, {LCD_COLOR_CH_PADDING{1'b0}}} : {COLOR_CH_WIDTH{1'b0}};
+assign Blue_i = (disp_ena == 1'b1) ? {Blue_level, {LCD_COLOR_CH_PADDING{1'b0}}} : {COLOR_CH_WIDTH{1'b0}};
 
 // outputs assigns
 assign pxl_x = Pxl_x_e;

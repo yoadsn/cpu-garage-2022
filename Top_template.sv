@@ -115,6 +115,8 @@ module Top_template(
 `endif
 );
 
+localparam COLOR_DEPTH = 9;
+localparam COLOR_CH_WIDTH = COLOR_DEPTH / 3;
 
 //=======================================================
 //  REG/WIRE declarations
@@ -141,9 +143,9 @@ wire				lcd_d_c;
 wire				lcd_rd;
 wire				lcd_buzzer;
 wire				lcd_status_led;
-wire	[3:0]		Red_level;
-wire	[3:0]		Green_level;
-wire	[3:0]		Blue_level;
+wire	[COLOR_CH_WIDTH-1:0]		Red_level;
+wire	[COLOR_CH_WIDTH-1:0]		Green_level;
+wire	[COLOR_CH_WIDTH-1:0]		Blue_level;
 
 // Intel module move and draw signals
 wire	[3:0]		r_intel;
@@ -194,9 +196,10 @@ assign VGA_R = vga_r_wire;
 assign VGA_G = vga_g_wire;
 assign VGA_B = vga_b_wire;
 
-
 // Screens control (LCD and VGA)
-Screens_dispaly Screen_control(
+Screens_dispaly #(
+	.COLOR_DEPTH(COLOR_DEPTH)
+) Screen_control(
 	.clk_25(clk_25),
 	.clk_100(clk_100),
 	.Red_level(Red_level),
@@ -272,18 +275,18 @@ periphery_control periphery_control_inst(
 );
 
 // Priority mux for the RGB
-Drawing_priority drawing_mux(
-	.clk(clk_25),
-	.resetN(~A),
-	//.RGB_1({r_intel,g_intel,b_intel}),
-	//.draw_1(draw_intel),
-	.RGB_2({r_starfield,g_starfield,b_starfield}),
-	.draw_2(draw_starfield),
-	.RGB_bg(12'hFFF),
-	.Red_level(Red_level),
-	.Green_level(Green_level),
-	.Blue_level(Blue_level)
-	);
+//Drawing_priority drawing_mux(
+//	.clk(clk_25),
+//	.resetN(~A),
+//	//.RGB_1({r_intel,g_intel,b_intel}),
+//	//.draw_1(draw_intel),
+//	.RGB_2({r_starfield,g_starfield,b_starfield}),
+//	.draw_2(draw_starfield),
+//	.RGB_bg(12'hFFF),
+//	.Red_level(Red_level),
+//	.Green_level(Green_level),
+//	.Blue_level(Blue_level)
+//	);
 	
 // Intel object
 /*Intel_unit Intel_unit_inst(
@@ -311,19 +314,62 @@ Drawing_priority drawing_mux(
 	.Green(g_ghost),
 	.Blue(b_ghost),
 	.Draw(draw_ghost)
-);*/	
+);*/
 
-Starfield_unit	Starfield_unit_inst(
+wire [COLOR_DEPTH-1:0] bf_draw_data;
+wire [31:0] bf_x_write_addr, bf_y_write_addr;
+wire bf_write_active, bf_write_awaited, bf_write_source_sel;
+Frame_manager #(
+	.MAX_WRITE_SOURCE(1),
+	.COLOR_DEPTH(COLOR_DEPTH)
+) fb_mgr (
 	.clk(clk_25),
 	.resetN(~A),
-	.Wheel(Wheel),
-	.pxl_x(pxl_x),
-	.pxl_y(pxl_y),
+	.frame,
+	.write_color_data(bf_draw_data),
+	.write_x_addr(bf_x_write_addr),
+	.write_y_addr(bf_y_write_addr),
+	.write_active(bf_write_active),
+	.write_awaited(bf_write_awaited),
+	.write_source_sel(bf_write_source_sel),
+
+	.read_x_addr(pxl_x),
+	.read_y_addr(pxl_y),
+	.read_color_data({ Red_level, Green_level, Blue_level })
+);
+
+Bkg_draw #(
+	.BKG_COLOR(9'b010010010),
+	.SOURCE_ID(0),
+	.COLOR_DEPTH(COLOR_DEPTH)
+) bkg(
+	.clk(clk_25),
+	.resetN(~A),
+	.write_color_data(bf_draw_data),
+	.write_x_addr(bf_x_write_addr),
+	.write_y_addr(bf_y_write_addr),
+	.write_active(bf_write_active),
+	.write_awaited(bf_write_awaited),
+	.write_source_sel(bf_write_source_sel)
+);
+
+
+Starfield_unit	#(
+	.SOURCE_ID(1),
+	.COLOR_DEPTH(COLOR_DEPTH)
+) Starfield_unit_inst(
+	.clk(clk_25),
+	.resetN(~A),
 	.frame(frame),
-	.Red(r_starfield),
-	.Green(g_starfield),
-	.Blue(b_starfield),
-	.Draw(draw_starfield)
+
+	.write_color_data(bf_draw_data),
+	.write_x_addr(bf_x_write_addr),
+	.write_y_addr(bf_y_write_addr),
+	.write_active(bf_write_active),
+	.write_awaited(bf_write_awaited),
+	.write_source_sel(bf_write_source_sel),
+
+	.Wheel(Wheel)
 );
 
 endmodule
