@@ -433,30 +433,28 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[32]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[33]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[34]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[35]
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name QIP_FILE pll25.qip
+set_global_assignment -name SYSTEMVERILOG_FILE Top_template.sv
+set_global_assignment -name SYSTEMVERILOG_FILE de10/Screens_dispaly.sv
+set_global_assignment -name VERILOG_FILE de10/ram_2p.v
+set_global_assignment -name SYSTEMVERILOG_FILE accl/Gsens_pars.sv
+set_global_assignment -name SYSTEMVERILOG_FILE Gsenscal_draw.sv
+set_global_assignment -name VERILOG_FILE accl/led_driver.v
+set_global_assignment -name SOURCE_FILE accl/spi_param.h
+set_global_assignment -name VERILOG_FILE accl/spi_ee_config.v
+set_global_assignment -name VERILOG_FILE accl/spi_controller.v
+set_global_assignment -name VERILOG_FILE accl/reset_delay.v
 set_global_assignment -name SYSTEMVERILOG_FILE Frame_manager.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Bkg_draw.sv
-set_global_assignment -name VERILOG_FILE ram_2p.v
 set_global_assignment -name SYSTEMVERILOG_FILE lfsr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Starfield_unit.sv
 set_global_assignment -name QIP_FILE adc/synthesis/adc.qip
 set_global_assignment -name VERILOG_FILE vga_controller.v
 set_global_assignment -name SYSTEMVERILOG_FILE seven_segment.sv
-set_global_assignment -name QIP_FILE pll25.qip
 set_global_assignment -name SYSTEMVERILOG_FILE lcd_ctrl.sv
 set_global_assignment -name QIP_FILE lcd_cmd.qip
 set_global_assignment -name SYSTEMVERILOG_FILE analog_input.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Screens_dispaly.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Top_template.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Draw_Intel.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Drawing_priority.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Move_Intel.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Draw_Ghost.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Move_Ghost.sv
-set_global_assignment -name SYSTEMVERILOG_FILE periphery_control.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Intel_unit.sv
-set_global_assignment -name SYSTEMVERILOG_FILE Ghost_unit.sv
-set_global_assignment -name SIGNALTAP_FILE stp_rgbdata.stp
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

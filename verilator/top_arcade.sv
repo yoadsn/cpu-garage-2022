@@ -1,24 +1,27 @@
+`default_nettype none
+`timescale 1ns / 1ps
+
 // Designer: Mor (Mordechai) Dahan, Avi Salmon,
 // Sep. 2022
 // ***********************************************
 
-`define ENABLE_ADC_CLOCK
-`define ENABLE_CLOCK1
-`define ENABLE_CLOCK2
-`define ENABLE_SDRAM
-`define ENABLE_HEX0
+//`define ENABLE_ADC_CLOCK
+//`define ENABLE_CLOCK1
+//`define ENABLE_CLOCK2
+//`define ENABLE_SDRAM
+/* `define ENABLE_HEX0
 `define ENABLE_HEX1
 `define ENABLE_HEX2
 `define ENABLE_HEX3
 `define ENABLE_HEX4
-`define ENABLE_HEX5
-`define ENABLE_KEY
-`define ENABLE_LED
+`define ENABLE_HEX5 */
+//`define ENABLE_KEY
+//`define ENABLE_LED
 `define ENABLE_SW
 `define ENABLE_VGA
-`define ENABLE_ACCELEROMETER
-`define ENABLE_ARDUINO
-`define ENABLE_GPIO
+//`define ENABLE_ACCELEROMETER
+//`define ENABLE_ARDUINO
+//`define ENABLE_GPIO
 
 module Top_template(
 
@@ -111,8 +114,28 @@ module Top_template(
 
 	//////////// GPIO, GPIO connect to GPIO Default: 3.3-V LVTTL //////////
 `ifdef ENABLE_GPIO
-	inout 		    [35:0]		GPIO
+	inout 		    [35:0]		GPIO,
 `endif
+
+	/// Verilator adaptation
+	output logic [31:0] pxl_x,
+	output logic [31:0] pxl_y,
+	output disp_ena,
+	input clk_25,
+	input clk_50,
+	input clk_100,
+
+	// Adaptation of the inputs controles
+	input	A,
+	input	B,
+	input	Select,
+	input	Start,
+	input	Right,
+	input	Left,
+	input	Up,
+	input	Down,
+	input [11:0]	Wheel,
+	input [11:0]	WheelY
 );
 
 localparam COLOR_DEPTH = 9;
@@ -123,13 +146,13 @@ localparam COLOR_CH_WIDTH = COLOR_DEPTH / 3;
 //=======================================================
 
 // clock signals
-wire				clk_25;
-wire				clk_100;
-wire	        spi_clk, spi_clk_out;
+/* wire				clk_25;
+wire				clk_50;
+wire				clk_100; */
 
 // Screens signals
-wire	[31:0]	pxl_x;
-wire	[31:0]	pxl_y;
+//wire	[31:0]	pxl_x;
+//wire	[31:0]	pxl_y;
 wire				frame;
 wire				h_sync_wire;
 wire				v_sync_wire;
@@ -171,7 +194,7 @@ wire	[3:0]		b_starfield;
 wire				draw_starfield;
 
 // Periphery signals
-wire	A;
+/* wire	A;
 wire	B;
 wire	Select;
 wire	Start;
@@ -179,22 +202,23 @@ wire	Right;
 wire	Left;
 wire	Up;
 wire	Down;
-wire [11:0]	Wheel;
+wire [11:0]	Wheel; */
 
 
 // Screens Assigns
-assign ARDUINO_IO[7:0]	= lcd_db;
-assign ARDUINO_IO[8] 	= lcd_reset;
-assign ARDUINO_IO[9]		= lcd_wr;
-assign ARDUINO_IO[10]	= lcd_d_c;
-assign ARDUINO_IO[11]	= lcd_rd;
-assign ARDUINO_IO[12]	= lcd_buzzer;
-assign ARDUINO_IO[13]	= lcd_status_led;
+//assign ARDUINO_IO[7:0]	= lcd_db;
+//assign ARDUINO_IO[8] 	= lcd_reset;
+//assign ARDUINO_IO[9]		= lcd_wr;
+//assign ARDUINO_IO[10]	= lcd_d_c;
+//assign ARDUINO_IO[11]	= lcd_rd;
+//assign ARDUINO_IO[12]	= lcd_buzzer;
+//assign ARDUINO_IO[13]	= lcd_status_led;
 assign VGA_HS = h_sync_wire;
 assign VGA_VS = v_sync_wire;
 assign VGA_R = vga_r_wire;
 assign VGA_G = vga_g_wire;
 assign VGA_B = vga_b_wire;
+
 
 // Screens control (LCD and VGA)
 Screens_dispaly #(
@@ -217,33 +241,32 @@ Screens_dispaly #(
 	.lcd_reset(lcd_reset),
 	.lcd_wr(lcd_wr),
 	.lcd_d_c(lcd_d_c),
-	.lcd_rd(lcd_rd)
+	.lcd_rd(lcd_rd),
+	.disp_ena(disp_ena)
 );
 
 
 // Utilities
 
 // 25M clk generation
-pll25	pll25_inst (
-	//.areset ( 1'b0 ),
-	.areset( dly_rst ),
+/* pll25	pll25_inst (
+	.areset ( 1'b0 ),
 	.inclk0 ( MAX10_CLK1_50 ),
 	.c0 ( clk_25 ),
-	.c1 ( clk_100 ),
-	.c2 ( spi_clk ), // 2MHz
-	.c3 ( spi_clk_out ), // 2MHz phase shift 
+	.c1 ( clk_50 ),
+	.c2 ( clk_100 ),
 	.locked ( )
-	);
+	); */
 
 
 //7-Seg default assign (all leds are off)
-assign HEX0 = 8'b01111111;
-assign HEX1 = 8'b01111111;
-assign HEX2 = 8'b01111111;
-assign HEX3 = 8'b01111111;
+/* assign HEX0 = 8'b11111111;
+assign HEX1 = 8'b11111111;
+assign HEX2 = 8'b11111111;
+assign HEX3 = 8'b11111111; */
 
 // periphery_control module for external units: joystick, wheel and buttons (A,B, Select and Start) 
-periphery_control periphery_control_inst(
+/* periphery_control periphery_control_inst(
 	.clk(clk_25),
 	.A(A),
 	.B(B),
@@ -254,96 +277,34 @@ periphery_control periphery_control_inst(
 	.Up(Up),
 	.Down(Down),
 	.Wheel(Wheel)
-	);
+	); */
 	
 	// Leds and 7-Seg show periphery_control outputs
-	/*
-	assign LEDR[0] = A; 			// A
-	assign LEDR[1] = B; 			// B
-	assign LEDR[2] = Select;	// Select
-	assign LEDR[3] = Start; 	// Start
-	assign LEDR[9] = Left; 		// Left
-	assign LEDR[8] = Right; 	// Right
-	assign LEDR[7] = Up; 		// UP
-	assign LEDR[6] = Down; 		// DOWN
-	*/
+	//assign LEDR[0] = A; 			// A
+	//assign LEDR[1] = B; 			// B
+	//assign LEDR[2] = Select;	// Select
+	//assign LEDR[3] = Start; 	// Start
+	//assign LEDR[9] = Left; 		// Left
+	//assign LEDR[8] = Right; 	// Right
+	//assign LEDR[7] = Up; 		// UP
+	//assign LEDR[6] = Down; 		// DOWN
 
-	seven_segment ss5(
+/* seven_segment ss5(
 	.in_hex(Wheel[11:8]),
 	.out_to_ss(HEX5)
 );
 
-	seven_segment ss4(
-	//.in_hex(Wheel[7:4]),
-	.in_hex(tilt_amount_x),
+seven_segment ss4(
+	.in_hex(Wheel[7:4]),
 	.out_to_ss(HEX4)
-);
-
-wire	        dly_rst;
-wire	[15:0]  data_x;
-wire	[15:0]  data_y;
-
-reset_delay	u_reset_delay	(	
-            .iRSTN(KEY[0]),
-            .iCLK(MAX10_CLK1_50),
-            .oRST(dly_rst));
-				
-//  Initial Setting and Data Read Back
-spi_ee_config u_spi_ee_config (			
-						.iRSTN(!dly_rst),															
-						.iSPI_CLK(spi_clk),								
-						.iSPI_CLK_OUT(spi_clk_out),								
-						.iG_INT2(GSENSOR_INT[1]),            
-						.oDATA_X_L(data_x[7:0]),
-						.oDATA_X_H(data_x[15:8]),
-						.oDATA_Y_L(data_y[7:0]),
-						.oDATA_Y_H(data_y[15:8]),
-						.SPI_SDIO(GSENSOR_SDI),
-						.oSPI_CSN(GSENSOR_CS_N),
-						.oSPI_CLK(GSENSOR_SCLK));
-						
-//	LED
-wire [3:0] tilt_amount_x;
-wire tilt_direction_x;
-Gsens_pars gsens_pars_x	(	
-						.iDIG(data_x[9:0]),
-						.iG_INT2(GSENSOR_INT[1]),
-						.tilt_amount(tilt_amount_x),
-						.tilt_direction(tilt_direction_x)
-						);
-
-wire [3:0] tilt_amount_y;
-wire tilt_direction_y;
-Gsens_pars gsens_pars_y	(	
-						.iDIG(data_y[9:0]),
-						.iG_INT2(GSENSOR_INT[1]),
-						.tilt_amount(tilt_amount_y),
-						.tilt_direction(tilt_direction_y)
-						);
-						
-/*
-	seven_segment ss0(
-	.in_hex(data_y[3:0]),
-	.out_to_ss(HEX0)
-);
-
-	seven_segment ss1(
-	.in_hex(data_y[7:4]),
-	.out_to_ss(HEX1)
-);
+); */
 
 
-	seven_segment ss2(
-	.in_hex(data_y[11:8]),
-	.out_to_ss(HEX2)
-);
+wire [3:0] tilt_amount_x = 0;
+wire tilt_direction_x = 0;
 
-	seven_segment ss3(
-	.in_hex(data_y[15:12]),
-	.out_to_ss(HEX3)
-);
-*/
-
+wire [3:0] tilt_amount_y = 0;
+wire tilt_direction_y = 0;
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
 wire [31:0] bf_x_write_addr, bf_y_write_addr;
@@ -407,7 +368,6 @@ Starfield_unit	#(
 	.tilt_amount_y,
 	.tilt_direction_y
 );
-
 
 /*
 Gsenscal_draw #(

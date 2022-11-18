@@ -9,6 +9,7 @@ module Frame_manager #(
 	input						clk,
 	input						resetN,
 	input						frame,
+	input						write_transparent,
 	input		[COLOR_DEPTH-1:0]	write_color_data,
 	input		[$clog2(DRAW_WIDTH)-1:0]	write_x_addr,
 	input		[$clog2(DRAW_HEIGHT)-1:0]	write_y_addr,
@@ -60,7 +61,7 @@ ram_2p	#(
 	.rdclock ( clk ),
 	.wraddress ( fb_write_addr ),
 	.wrclock ( clk ),
-	.wren ( write_active && active_framebuffer ), // FB 1 active for reading - write to 0
+	.wren ( ~write_transparent && write_active && active_framebuffer ), // FB 1 active for reading - write to 0
 	.q ( stored_read_color_fb_0 )
 );
 
@@ -87,7 +88,7 @@ ram_2p	#(
 	.rdclock ( clk ),
 	.wraddress ( fb_write_addr ),
 	.wrclock ( clk ),
-	.wren ( write_active && ~active_framebuffer ), // FB 0 active for reading - write to 1
+	.wren ( ~write_transparent && write_active && ~active_framebuffer ), // FB 0 active for reading - write to 1
 	.q ( stored_read_color_fb_1 )
 );
 

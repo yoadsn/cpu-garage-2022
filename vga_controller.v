@@ -91,7 +91,6 @@ module vga_controller #(
             render_row <= v_count;
          end
 			
-			// Frame end signal
 			if (h_count == h_pixels - 1 && v_count == v_pixels - 1) begin
             frame <= 1;
          end else begin
