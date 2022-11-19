@@ -1,4 +1,4 @@
-module Gsens_pars (
+module Gsensemu_pars (
 	input		    [9:0]  iDIG,
 	input		           iG_INT2,
 	output			[3:0]  tilt_amount,

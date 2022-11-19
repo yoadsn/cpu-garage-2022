@@ -409,8 +409,8 @@ Starfield_unit	#(
 );
 
 
-/*
-Gsenscal_draw #(
+
+/* Gsenscal_draw #(
 	.SOURCE_ID(0),
 	.COLOR_DEPTH(COLOR_DEPTH),
 	.TILE_SCALE_FACTOR(3)
@@ -427,6 +427,6 @@ Gsenscal_draw #(
 	.write_active(bf_write_active),
 	.write_awaited(bf_write_awaited),
 	.write_source_sel(bf_write_source_sel)
-);*/
+); */
 
 endmodule

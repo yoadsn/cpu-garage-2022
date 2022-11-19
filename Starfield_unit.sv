@@ -256,11 +256,11 @@ module Starfield_unit #(
 					end
 				end
 
-				if (SW[0]) space_view_center_x <= tilt_direction_x ? -1000 : 1000;
-				else space_view_center_x <= tilt_direction_x ? 1000 : -1000;
+				if (SW[0]) space_view_center_x <= tilt_direction_x ? 0 - (tilt_amount_x << 9) : tilt_amount_x << 9;
+				else space_view_center_x <= tilt_direction_x ? tilt_amount_x << 9 : 0 - tilt_amount_x << 9;
 				
-				if (SW[1]) space_view_center_y <= tilt_direction_y ? -1000 : 1000;
-				else space_view_center_y <= tilt_direction_y ? 1000 : -1000;
+				if (SW[1]) space_view_center_y <= tilt_direction_y ? 0 - (tilt_amount_y << 9) : tilt_amount_y << 9;
+				else space_view_center_y <= tilt_direction_y ? tilt_amount_y << 9 : 0 - (tilt_amount_y << 9);
 			end
 
 			REPLACE_DONE: begin

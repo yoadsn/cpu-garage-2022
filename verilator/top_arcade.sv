@@ -135,7 +135,10 @@ module Top_template(
 	input	Up,
 	input	Down,
 	input [11:0]	Wheel,
-	input [11:0]	WheelY
+	
+	// Emulates the Gsensor
+	input [9:0] 	TiltX,
+	input [9:0] 	TiltY
 );
 
 localparam COLOR_DEPTH = 9;
@@ -169,29 +172,6 @@ wire				lcd_status_led;
 wire	[COLOR_CH_WIDTH-1:0]		Red_level;
 wire	[COLOR_CH_WIDTH-1:0]		Green_level;
 wire	[COLOR_CH_WIDTH-1:0]		Blue_level;
-
-// Intel module move and draw signals
-wire	[3:0]		r_intel;
-wire	[3:0]		g_intel;
-wire	[3:0]		b_intel;
-wire				draw_intel;
-wire	[31:0]	topLeft_x_intel;
-wire	[31:0]	topLeft_y_intel;
-
-// Ghost module move and draw signals
-wire	[3:0]		r_ghost;
-wire	[3:0]		g_ghost;
-wire	[3:0]		b_ghost;
-wire				draw_ghost;
-wire 				ghost_x_direction;
-wire	[31:0]	topLeft_x_ghost;
-wire	[31:0]	topLeft_y_ghost;
-
-// Starfield module
-wire	[3:0]		r_starfield;
-wire	[3:0]		g_starfield;
-wire	[3:0]		b_starfield;
-wire				draw_starfield;
 
 // Periphery signals
 /* wire	A;
@@ -299,12 +279,23 @@ seven_segment ss4(
 	.out_to_ss(HEX4)
 ); */
 
+wire [3:0] tilt_amount_x;
+wire tilt_direction_x;
+Gsensemu_pars gsens_pars_x	(	
+						.iDIG(TiltX),
+						.iG_INT2(1),
+						.tilt_amount(tilt_amount_x),
+						.tilt_direction(tilt_direction_x)
+						);
 
-wire [3:0] tilt_amount_x = 0;
-wire tilt_direction_x = 0;
-
-wire [3:0] tilt_amount_y = 0;
-wire tilt_direction_y = 0;
+wire [3:0] tilt_amount_y;
+wire tilt_direction_y;
+/* Gsensemu_pars gsens_pars_y	(	
+						.iDIG(TiltY),
+						.iG_INT2(1),
+						.tilt_amount(tilt_amount_y),
+						.tilt_direction(tilt_direction_y)
+						); */
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
 wire [31:0] bf_x_write_addr, bf_y_write_addr;

@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
     uint64_t enaclicks = 0;
     int prevdisena = 0;
     short wheel_val = 0;
-    short wheel_val_y = 0;
 
     // reset
     top->SW = 0; // Active low
@@ -223,13 +222,6 @@ int main(int argc, char *argv[])
             if (wheel_val > MAX_WHEEL)
                 wheel_val = MAX_WHEEL;
             top->Wheel = wheel_val;
-
-            wheel_val_y -= (last_mouse_y * 5);
-            if (wheel_val_y < -MAX_WHEEL)
-                wheel_val_y = -MAX_WHEEL;
-            if (wheel_val_y > MAX_WHEEL)
-                wheel_val_y = MAX_WHEEL;
-            top->WheelY = wheel_val_y;
 
             if (frame_count % 30 == 0)
             {
