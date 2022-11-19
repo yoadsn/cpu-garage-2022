@@ -227,8 +227,12 @@ module Starfield_unit #(
 					end
 
 				//stars_draw_buffer_c[star_addr] <= (star_locs_z[star_addr] <= SPACE_DEPTH * 2 / 3);
-				//stars_draw_buffer_c[star_addr] <= 3'b111 - star_locs_z[star_addr][SPACE_DEPTH_ADDRW-1:SPACE_DEPTH_ADDRW-3];
-				stars_draw_buffer_c[star_addr] <= 3'b111;
+				stars_draw_buffer_c[star_addr] <= star_locs_z[star_addr] < SPACE_DEPTH / 2 ? 3'b111 :
+																					star_locs_z[star_addr] < SPACE_DEPTH * 2 / 3 ? 3'b101 :
+																					3'b011;
+																					
+
+				//stars_draw_buffer_c[star_addr] <= 3'b111;
 				
 				/*case (star_addr[1:0])
 					2'b00: begin
