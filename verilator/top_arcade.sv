@@ -290,12 +290,12 @@ Gsensemu_pars gsens_pars_x	(
 
 wire [3:0] tilt_amount_y;
 wire tilt_direction_y;
-/* Gsensemu_pars gsens_pars_y	(	
+Gsensemu_pars gsens_pars_y	(	
 						.iDIG(TiltY),
 						.iG_INT2(1),
 						.tilt_amount(tilt_amount_y),
 						.tilt_direction(tilt_direction_y)
-						); */
+						);
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
 wire [31:0] bf_x_write_addr, bf_y_write_addr;
@@ -379,5 +379,14 @@ Gsenscal_draw #(
 	.write_awaited(bf_write_awaited),
 	.write_source_sel(bf_write_source_sel)
 );*/
+
+/* reg [22:0] th_disp;
+always @(posedge clk_25) begin
+	th_disp <= th_disp + 1;
+	if (th_disp[22]) begin
+		th_disp <= 0;
+		$display("%h => %b %h", TiltX, tilt_direction_x, tilt_amount_x);
+	end
+end */
 
 endmodule

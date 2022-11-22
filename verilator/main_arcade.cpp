@@ -18,7 +18,8 @@ typedef struct Pixel
     uint8_t r; // red
 } Pixel;
 
-const int MAX_WHEEL = 5000; // 4096
+const int MAX_WHEEL = 4096;
+const short MAX_TILT_AMOUNT = 512;
 
 int main(int argc, char *argv[])
 {
@@ -81,6 +82,8 @@ int main(int argc, char *argv[])
     uint64_t enaclicks = 0;
     int prevdisena = 0;
     short wheel_val = 0;
+    short mouse_x_delta = 0;
+    short mouse_y_delta = 0;
 
     // reset
     top->SW = 0; // Active low
@@ -208,25 +211,25 @@ int main(int argc, char *argv[])
 
             SDL_GetRelativeMouseState(&last_mouse_x, &last_mouse_y);
 
-            /* if (keyb_state[SDL_SCANCODE_P])
+            mouse_x_delta += (last_mouse_x * 5);
+            if (mouse_x_delta < -MAX_TILT_AMOUNT)
+                mouse_x_delta = -MAX_TILT_AMOUNT;
+            if (mouse_x_delta > (MAX_TILT_AMOUNT - 1))
+                mouse_x_delta = MAX_TILT_AMOUNT - 1;
+            // ensure 2's complement in the correct width (this is a signed value)
+            top->TiltX = mouse_x_delta & (2 * MAX_TILT_AMOUNT - 1);
+            /* if (frame_count % 30 == 0)
             {
-                wheel_val += 50;
+                printf("%d, %X\n", mouse_x_delta, mouse_x_delta & (2 * MAX_TILT_AMOUNT - 1));
             }
-            else if (keyb_state[SDL_SCANCODE_O])
-            {
-                wheel_val -= 50;
-            } */
-            wheel_val -= (last_mouse_x * 5);
-            if (wheel_val < -MAX_WHEEL)
-                wheel_val = -MAX_WHEEL;
-            if (wheel_val > MAX_WHEEL)
-                wheel_val = MAX_WHEEL;
-            top->Wheel = wheel_val;
-
-            if (frame_count % 30 == 0)
-            {
-                // printf("%d\n", wheel_val);
-            }
+ */
+            mouse_y_delta += (last_mouse_y * 5);
+            if (mouse_y_delta < -MAX_TILT_AMOUNT)
+                mouse_y_delta = -MAX_TILT_AMOUNT;
+            if (mouse_y_delta > (MAX_TILT_AMOUNT - 1))
+                mouse_y_delta = MAX_TILT_AMOUNT - 1;
+            // ensure 2's complement in the correct width (this is a signed value)
+            top->TiltY = mouse_y_delta & (2 * MAX_TILT_AMOUNT - 1);
 
             SDL_UpdateTexture(sdl_texture, NULL, screenbuffer, H_RES * sizeof(Pixel));
             SDL_RenderClear(sdl_renderer);
