@@ -380,6 +380,7 @@ Bkg_draw #(
 	.clk(clk_25),
 	.resetN(~A),
 	.write_color_data(bf_draw_data),
+	.write_transparent(bf_write_transparent),
 	.write_x_addr(bf_x_write_addr),
 	.write_y_addr(bf_y_write_addr),
 	.write_active(bf_write_active),

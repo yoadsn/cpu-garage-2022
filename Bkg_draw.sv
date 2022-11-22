@@ -9,6 +9,7 @@ module Bkg_draw #(
 	input		    write_awaited,
 	output      write_active,
 	output	[COLOR_DEPTH-1:0]  write_color_data,
+  output		write_transparent,
 	output	[31:0]  write_x_addr,
 	output	[31:0]  write_y_addr
 	);
@@ -83,5 +84,6 @@ assign write_active = write_source_sel == SOURCE_ID ? (draw_state == WRITE_ACTIV
 assign write_color_data = write_source_sel == SOURCE_ID ? draw_color : 'z;
 assign write_x_addr = write_source_sel == SOURCE_ID && column < DRAW_WIDTH ? column : 'z;
 assign write_y_addr = write_source_sel == SOURCE_ID && row < DRAW_HEIGHT ? row : 'z;
+assign write_transparent = write_source_sel == SOURCE_ID ? 0 : 'z;
 
 endmodule
