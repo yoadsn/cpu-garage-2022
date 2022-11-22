@@ -244,7 +244,7 @@ assign HEX3 = 8'b01111111;
 
 // periphery_control module for external units: joystick, wheel and buttons (A,B, Select and Start) 
 periphery_control periphery_control_inst(
-	.clk(clk_25),
+	.clk(clk_100),
 	.A(A),
 	.B(B),
 	.Select(Select),
