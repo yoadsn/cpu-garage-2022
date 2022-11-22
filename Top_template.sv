@@ -115,6 +115,8 @@ module Top_template(
 `endif
 );
 
+`include "frame_manager.h"
+
 localparam COLOR_DEPTH = 9;
 localparam COLOR_CH_WIDTH = COLOR_DEPTH / 3;
 
@@ -347,9 +349,10 @@ Gsens_pars gsens_pars_y	(
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
 wire [31:0] bf_x_write_addr, bf_y_write_addr;
-wire bf_write_active, bf_write_awaited, bf_write_source_sel, bf_write_transparent;
+wire bf_write_active, bf_write_awaited, bf_write_transparent;
+wire [SOURCE_SEL_ADDRW-1:0] bf_write_source_sel;
 Frame_manager #(
-	.MAX_WRITE_SOURCE(1),
+	.MAX_WRITE_SOURCE(2),
 	.COLOR_DEPTH(COLOR_DEPTH)
 ) fb_mgr (
 	.clk(clk_25),
@@ -409,12 +412,11 @@ Starfield_unit	#(
 );
 
 
-
-/* Gsenscal_draw #(
-	.SOURCE_ID(0),
+Gsenscal_draw #(
+	.SOURCE_ID(2),
 	.COLOR_DEPTH(COLOR_DEPTH),
 	.TILE_SCALE_FACTOR(3)
-) bkg(
+) gsens_cal (
 	.clk(clk_25),
 	.resetN(~A),
 	.tilt_amount_x,
@@ -422,11 +424,12 @@ Starfield_unit	#(
 	.tilt_amount_y,
 	.tilt_direction_y,
 	.write_color_data(bf_draw_data),
+	.write_transparent(bf_write_transparent),
 	.write_x_addr(bf_x_write_addr),
 	.write_y_addr(bf_y_write_addr),
 	.write_active(bf_write_active),
 	.write_awaited(bf_write_awaited),
 	.write_source_sel(bf_write_source_sel)
-); */
+);
 
 endmodule

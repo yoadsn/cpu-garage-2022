@@ -15,12 +15,14 @@ module Frame_manager #(
 	input		[$clog2(DRAW_HEIGHT)-1:0]	write_y_addr,
 	input		logic		write_active,
 	output	reg	write_awaited,
-	output	reg	write_source_sel,
+	output	reg [SOURCE_SEL_ADDRW-1:0]	write_source_sel,
 
   	input   [$clog2(DRAW_WIDTH)-1:0] read_x_addr,
   	input   [$clog2(DRAW_HEIGHT)-1:0] read_y_addr,
   	output	[COLOR_DEPTH-1:0] read_color_data
 	);
+
+`include "frame_manager.h"
 
 localparam SCALE_DOWN_SHR = $clog2(SCALE_DOWN_FACTOR);
 localparam SCALED_DRAW_WIDTH = DRAW_WIDTH >> SCALE_DOWN_SHR;
@@ -100,7 +102,7 @@ enum {
 		WRITING_DONE,
 		AWAIT_SWAP_FRAMES
 } wsrc_state, wsrc_state_next;
-logic next_write_source_sel = 0;
+logic [SOURCE_SEL_ADDRW-1:0] next_write_source_sel = 0;
 logic next_active_framebuffer;
 
 always_comb begin

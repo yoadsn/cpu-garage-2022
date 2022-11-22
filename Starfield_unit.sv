@@ -14,7 +14,7 @@ module Starfield_unit #(
 		input				tilt_direction_y,
 
 		// draw manager interface
-		input		  	write_source_sel,
+		input		[SOURCE_SEL_ADDRW-1:0]  	write_source_sel,
 		input		    write_awaited,
 		output      write_active,
 		output	[COLOR_DEPTH-1:0]  write_color_data,
@@ -23,6 +23,7 @@ module Starfield_unit #(
 		output	[31:0]  write_y_addr
 	);
 
+	`include "frame_manager.h"
 
 	// Derived from system native resolution
 	localparam NATIVE_DRAW_WIDTH = 640;

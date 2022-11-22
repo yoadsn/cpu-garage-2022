@@ -7,7 +7,7 @@ module Gsenscal_draw #(
 )(
 	input						clk,
 	input						resetN,
-	input		  	write_source_sel,
+	input		[SOURCE_SEL_ADDRW-1:0]  	write_source_sel,
 	input		    write_awaited,
 	input		[3:0]	tilt_amount_x,
 	input					tilt_direction_x,
@@ -16,9 +16,12 @@ module Gsenscal_draw #(
 	
   output      write_active,
 	output	[COLOR_DEPTH-1:0]  write_color_data,
+  output		write_transparent,
 	output	[31:0]  write_x_addr,
 	output	[31:0]  write_y_addr
 	);
+
+`include "frame_manager.h"
 
 localparam DRAW_WIDTH_HALF = DRAW_WIDTH / 2;
 localparam DRAW_HEIGHT_HALF = DRAW_HEIGHT / 2;
@@ -76,18 +79,16 @@ always_ff @ (posedge clk or negedge resetN) begin
     mark_x <= 0;
     mark_y <= 0;
   end else begin
-    mark_x <= tilt_direction_x ? tilt_amount_x << TILE_SCALE_FACTOR : -(tilt_amount_x << TILE_SCALE_FACTOR);
-	 mark_y <= tilt_direction_y ? tilt_amount_y << TILE_SCALE_FACTOR : -(tilt_amount_y << TILE_SCALE_FACTOR);
+    mark_x <= ~tilt_direction_x ? tilt_amount_x << TILE_SCALE_FACTOR : -(tilt_amount_x << TILE_SCALE_FACTOR);
+	 mark_y <= ~tilt_direction_y ? tilt_amount_y << TILE_SCALE_FACTOR : -(tilt_amount_y << TILE_SCALE_FACTOR);
   end
 end
 
 shortint column, row;
-logic [COLOR_DEPTH-1:0] draw_color;
 always_ff @ (posedge clk or negedge resetN) begin
   if (~resetN) begin
     column <= 0;
     row <= 0;
-    draw_color <= 0;
   end else begin
     case (draw_state)
       ACTIVATE_WRITE: begin
@@ -102,18 +103,18 @@ always_ff @ (posedge clk or negedge resetN) begin
         end else begin          
           column <= column + 1;
         end
-        
-        draw_color <= on_mark ?   9'h1c0 :
-                      on_cross ?  9'h1ff :
-                                  9'h000;
       end
     endcase
   end
 end
 
 assign write_active = write_source_sel == SOURCE_ID ? (draw_state == WRITE_ACTIVE) : 'z;
-assign write_color_data = write_source_sel == SOURCE_ID ? draw_color : 'z;
+assign write_color_data = write_source_sel == SOURCE_ID ? on_mark ? 9'h1c0
+                                                          : on_cross ? 9'h1ff
+                                                          : 'z
+                                                          : 'z;
 assign write_x_addr = write_source_sel == SOURCE_ID && column < DRAW_WIDTH ? column : 'z;
 assign write_y_addr = write_source_sel == SOURCE_ID && row < DRAW_HEIGHT ? row : 'z;
+assign write_transparent = write_source_sel == SOURCE_ID ? !(on_mark || on_cross) : 'z;
 
 endmodule

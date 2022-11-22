@@ -5,13 +5,15 @@ module Bkg_draw #(
 )(
 	input						clk,
 	input						resetN,
-	input		  	write_source_sel,
+	input		[SOURCE_SEL_ADDRW-1:0]  	write_source_sel,
 	input		    write_awaited,
 	output      write_active,
 	output	[COLOR_DEPTH-1:0]  write_color_data,
 	output	[31:0]  write_x_addr,
 	output	[31:0]  write_y_addr
 	);
+
+`include "frame_manager.h"
 
 parameter DRAW_WIDTH = 640;
 parameter DRAW_HEIGHT = 480;
