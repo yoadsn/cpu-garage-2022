@@ -1,8 +1,5 @@
 module Gsenscal_draw #(
   parameter SOURCE_ID = 0,
-  parameter COLOR_DEPTH = 9,
-  parameter DRAW_WIDTH = 640,
-  parameter DRAW_HEIGHT = 480,
   parameter TILE_SCALE_FACTOR = 1
 )(
 	input						clk,
@@ -17,8 +14,8 @@ module Gsenscal_draw #(
   output      write_active,
 	output	[COLOR_DEPTH-1:0]  write_color_data,
   output		write_transparent,
-	output	[31:0]  write_x_addr,
-	output	[31:0]  write_y_addr
+	output	[DRAW_WIDTH_ADDRW-1:0]	write_x_addr,
+	output	[DRAW_HEIGHT_ADDRW-1:0]	write_y_addr
 	);
 
 `include "frame_manager.h"
@@ -84,7 +81,8 @@ always_ff @ (posedge clk or negedge resetN) begin
   end
 end
 
-shortint column, row;
+logic [DRAW_WIDTH_ADDRW-1:0] column;
+logic [DRAW_HEIGHT_ADDRW-1:0] row;
 always_ff @ (posedge clk or negedge resetN) begin
   if (~resetN) begin
     column <= 0;

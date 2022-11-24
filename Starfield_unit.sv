@@ -1,7 +1,6 @@
 module Starfield_unit #(
 	parameter SOURCE_ID = 0,
-	parameter STAR_COLOR = 9'b111111111,
-	parameter COLOR_DEPTH = 9
+	parameter STAR_COLOR = 9'b111111111
 )(	
 		input		clk,
 		input		resetN,
@@ -19,31 +18,25 @@ module Starfield_unit #(
 		output      write_active,
 		output	[COLOR_DEPTH-1:0]  write_color_data,
 		output		write_transparent,
-		output	[31:0]  write_x_addr,
-		output	[31:0]  write_y_addr
+		output	[DRAW_WIDTH_ADDRW-1:0]	write_x_addr,
+		output	[DRAW_HEIGHT_ADDRW-1:0]	write_y_addr
 	);
 
 	`include "frame_manager.h"
 
 	// Derived from system native resolution
-	localparam NATIVE_DRAW_WIDTH = 640;
-	localparam NATIVE_DRAW_HEIGHT = 480;
-	localparam TOTAL_PIXELS = NATIVE_DRAW_WIDTH * NATIVE_DRAW_HEIGHT;
-	// Control internal drawing resolution
-	localparam DRAW_DOWN_SCALE_FACTOR = 1; // Multiples of 2 only are allowed !!! NOT SUPPORTED WITH DRAW MGR! DONT CHANGE FROM 1
-	localparam DRAW_WIDTH = NATIVE_DRAW_WIDTH >> $clog2(DRAW_DOWN_SCALE_FACTOR);
 	localparam DRAW_WIDTH_HALF = DRAW_WIDTH >> 1;
-	localparam DRAW_HEIGHT = NATIVE_DRAW_HEIGHT >> $clog2(DRAW_DOWN_SCALE_FACTOR);
 	localparam DRAW_HEIGHT_HALF = DRAW_HEIGHT >> 1;
 
 	localparam STARS_COUNT = 50;
+	localparam STARS_ADDRW = $clog2(STARS_COUNT);
 	localparam STARS_X_SPEED = 10; // Z axis change per frame
 	localparam STARS_Y_SPEED = 10; // Z axis change per frame
 	localparam STARS_Z_SPEED = 5; // Z axis change per frame
 	localparam DRAW_TO_SPACE_FACTOR = 30;
-	localparam SPACE_WIDTH = NATIVE_DRAW_WIDTH * DRAW_TO_SPACE_FACTOR;
+	localparam SPACE_WIDTH = DRAW_WIDTH * DRAW_TO_SPACE_FACTOR;
 	localparam SPACE_WIDTH_HALF = SPACE_WIDTH >> 1;
-	localparam SPACE_HEIGHT = NATIVE_DRAW_HEIGHT * DRAW_TO_SPACE_FACTOR;
+	localparam SPACE_HEIGHT = DRAW_HEIGHT * DRAW_TO_SPACE_FACTOR;
 	localparam SPACE_HEIGHT_HALF = SPACE_HEIGHT >> 1;
 	localparam SPACE_DEPTH = 700;
 	localparam SPACE_DEPTH_ADDRW = $clog2(SPACE_DEPTH);
@@ -111,7 +104,7 @@ module Starfield_unit #(
 		REPLACE_DONE,
 		DRAW_STARS
 	} sf_state, sf_state_next;
-	logic [$clog2(STARS_COUNT)-1:0] star_addr, star_addr_next;
+	logic [STARS_ADDRW-1:0] star_addr, star_addr_next;
 	always_comb begin
 		star_addr_next = 0;
 		sf_state_next = INIT_STARS_SEED;
@@ -169,15 +162,15 @@ module Starfield_unit #(
 	// For each star - which screen x,y to draw on?
 	// Create a buffer until draw state (pipeline the projections)
 	// (Stars Count) X (x or y) X (32 bit coordinate)
-	shortint stars_draw_buffer_x [0:STARS_COUNT-1];
-	shortint stars_draw_buffer_y [0:STARS_COUNT-1];
+	logic [DRAW_WIDTH_ADDRW-1:0] stars_draw_buffer_x [0:STARS_COUNT-1];
+	logic [DRAW_HEIGHT_ADDRW-1:0] stars_draw_buffer_y [0:STARS_COUNT-1];
 	logic [2:0] stars_draw_buffer_c [0:STARS_COUNT-1];
 
 	
 	wire draw_outbound_star_x_neg = stars_draw_buffer_x[star_addr] < 0;
-	wire draw_outbound_star_x_pos = stars_draw_buffer_x[star_addr] >= NATIVE_DRAW_WIDTH;
+	wire draw_outbound_star_x_pos = stars_draw_buffer_x[star_addr] >= DRAW_WIDTH;
 	wire draw_outbound_star_y_neg = stars_draw_buffer_y[star_addr] < 0;
-	wire draw_outbound_star_y_pos = stars_draw_buffer_y[star_addr] >= NATIVE_DRAW_HEIGHT;
+	wire draw_outbound_star_y_pos = stars_draw_buffer_y[star_addr] >= DRAW_HEIGHT;
 
 	wire star_out_of_draw_range = draw_outbound_star_x_neg || draw_outbound_star_x_pos || draw_outbound_star_y_neg || draw_outbound_star_y_pos;
 	
@@ -187,8 +180,6 @@ module Starfield_unit #(
 	wire space_outbound_star_y_pos = star_locs_y[star_addr] > (space_view_center_y + SPACE_HEIGHT_HALF);
 	
 	wire space_outbound_star_z_neg = star_locs_z[star_addr] <= STARS_Z_SPEED;
-
-	wire star_out_of_space_range = space_outbound_star_x_neg || space_outbound_star_x_pos || space_outbound_star_y_neg || space_outbound_star_y_pos || space_outbound_star_z_neg;
 		
 	wire [COLOR_DEPTH-1:0] star_draw_color = {stars_draw_buffer_c[star_addr], stars_draw_buffer_c[star_addr], stars_draw_buffer_c[star_addr]};
 

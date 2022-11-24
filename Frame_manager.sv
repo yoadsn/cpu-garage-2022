@@ -1,9 +1,6 @@
 module Frame_manager #(
 	parameter MAX_WRITE_SOURCE = 1,
-	parameter DRAW_WIDTH = 640,
-	parameter DRAW_HEIGHT = 480,
-	parameter SCALE_DOWN_FACTOR = 2, // 2^x
-	parameter COLOR_DEPTH = 9
+	parameter SCALE_DOWN_FACTOR = 2 // 2^x
 )(
 	
 	input						clk,
@@ -11,23 +8,24 @@ module Frame_manager #(
 	input						frame,
 	input						write_transparent,
 	input		[COLOR_DEPTH-1:0]	write_color_data,
-	input		[$clog2(DRAW_WIDTH)-1:0]	write_x_addr,
-	input		[$clog2(DRAW_HEIGHT)-1:0]	write_y_addr,
+	input		[DRAW_WIDTH_ADDRW-1:0]	write_x_addr,
+	input		[DRAW_HEIGHT_ADDRW-1:0]	write_y_addr,
 	input		logic		write_active,
 	output	reg	write_awaited,
 	output	reg [SOURCE_SEL_ADDRW-1:0]	write_source_sel,
 
-  	input   [$clog2(DRAW_WIDTH)-1:0] read_x_addr,
-  	input   [$clog2(DRAW_HEIGHT)-1:0] read_y_addr,
+  	input   [DRAW_WIDTH_ADDRW-1:0] read_x_addr,
+  	input   [DRAW_HEIGHT_ADDRW-1:0] read_y_addr,
   	output	[COLOR_DEPTH-1:0] read_color_data
 	);
 
 `include "frame_manager.h"
 
+localparam DRAW_FB_MULT_ADDRW = DRAW_WIDTH_ADDRW + DRAW_HEIGHT_ADDRW;
 localparam SCALE_DOWN_SHR = $clog2(SCALE_DOWN_FACTOR);
 localparam SCALED_DRAW_WIDTH = DRAW_WIDTH >> SCALE_DOWN_SHR;
 localparam SCALED_DRAW_HEIGHT = DRAW_HEIGHT >> SCALE_DOWN_SHR;
-localparam FB_DEPTH = SCALED_DRAW_WIDTH * SCALED_DRAW_HEIGHT;
+localparam FB_DEPTH = DRAW_FB_MULT_ADDRW'(SCALED_DRAW_WIDTH) * DRAW_FB_MULT_ADDRW'(SCALED_DRAW_HEIGHT);
 localparam FB_ADDRW = $clog2(FB_DEPTH);
 
 logic active_framebuffer;
@@ -41,19 +39,6 @@ always_comb begin
 	fb_write_addr = (write_y_addr >> SCALE_DOWN_SHR) * SCALED_DRAW_WIDTH + (write_x_addr >> SCALE_DOWN_SHR);
 end
 
-/* bram_sdp #(
-		.WIDTH(12),
-		.DEPTH(FB_DEPTH)
-	) stars_draw_fb_0 (
-		.clk_write(clk),
-		.clk_read(clk),
-		.we(write_active && active_framebuffer), // FB 1 active for reading - write to 0
-		.addr_write(write_y_addr * DRAW_WIDTH + write_x_addr),
-		.addr_read(fb_read_addr),
-		.data_in(write_color_data),
-		.data_out(stored_read_color_fb_0)
-	); */
-
 ram_2p	#(
 		.WIDTH(COLOR_DEPTH),
 		.DEPTH(FB_DEPTH)
@@ -66,20 +51,6 @@ ram_2p	#(
 	.wren ( ~write_transparent && write_active && active_framebuffer ), // FB 1 active for reading - write to 0
 	.q ( stored_read_color_fb_0 )
 );
-
-	
-/* bram_sdp #(
-		.WIDTH(12),
-		.DEPTH(FB_DEPTH)
-	) stars_draw_fb_1 (
-		.clk_write(clk),
-		.clk_read(clk),
-		.we(write_active && ~active_framebuffer), // FB 0 active for reading - write to 1
-		.addr_write(write_y_addr * DRAW_WIDTH + write_x_addr),
-		.addr_read(fb_read_addr),
-		.data_in(write_color_data),
-		.data_out(stored_read_color_fb_1)
-	); */
 
 ram_2p	#(
 		.WIDTH(COLOR_DEPTH),
