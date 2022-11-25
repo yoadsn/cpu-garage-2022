@@ -3,7 +3,7 @@ module Frame_manager #(
 	parameter SCALE_DOWN_FACTOR = 2 // 2^x
 )(
 	
-	input						clk,
+	input						write_clk,
 	input						resetN,
 	input						frame,
 	input						write_transparent,
@@ -14,6 +14,7 @@ module Frame_manager #(
 	output	reg	write_awaited,
 	output	reg [SOURCE_SEL_ADDRW-1:0]	write_source_sel,
 
+	input		read_clk,
   	input   [DRAW_WIDTH_ADDRW-1:0] read_x_addr,
   	input   [DRAW_HEIGHT_ADDRW-1:0] read_y_addr,
   	output	[COLOR_DEPTH-1:0] read_color_data
@@ -45,9 +46,9 @@ ram_2p	#(
 	) stars_draw_fb_0 (
 	.data ( write_color_data ),
 	.rdaddress ( fb_read_addr ),
-	.rdclock ( clk ),
+	.rdclock ( read_clk ),
 	.wraddress ( fb_write_addr ),
-	.wrclock ( clk ),
+	.wrclock ( write_clk ),
 	.wren ( ~write_transparent && write_active && active_framebuffer ), // FB 1 active for reading - write to 0
 	.q ( stored_read_color_fb_0 )
 );
@@ -58,9 +59,9 @@ ram_2p	#(
 	) stars_draw_fb_1 (
 	.data ( write_color_data ),
 	.rdaddress ( fb_read_addr ),
-	.rdclock ( clk ),
+	.rdclock ( read_clk ),
 	.wraddress ( fb_write_addr ),
-	.wrclock ( clk ),
+	.wrclock ( write_clk ),
 	.wren ( ~write_transparent && write_active && ~active_framebuffer ), // FB 0 active for reading - write to 1
 	.q ( stored_read_color_fb_1 )
 );
@@ -118,14 +119,14 @@ always_comb begin
 end
 
 // update source write state
-always_ff @(posedge clk) begin
+always_ff @(posedge write_clk) begin
 	wsrc_state <= wsrc_state_next;
 	write_source_sel <= next_write_source_sel;
 	active_framebuffer <= next_active_framebuffer;
 end
 
 // Signal sources that writes are awaited
-always_ff @(posedge clk or negedge resetN) begin
+always_ff @(posedge write_clk or negedge resetN) begin
 	if (~resetN) begin
 		write_awaited <= 0;
 	end

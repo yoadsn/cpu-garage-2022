@@ -353,7 +353,7 @@ wire [SOURCE_SEL_ADDRW-1:0] bf_write_source_sel;
 Frame_manager #(
 	.MAX_WRITE_SOURCE(2)
 ) fb_mgr (
-	.clk(clk_25),
+	.write_clk(clk_25),
 	.resetN(~A),
 	.frame,
 	.write_color_data(bf_draw_data),
@@ -364,6 +364,7 @@ Frame_manager #(
 	.write_awaited(bf_write_awaited),
 	.write_source_sel(bf_write_source_sel),
 
+	.read_clk(clk_25),
 	.read_x_addr(pxl_x),
 	.read_y_addr(pxl_y),
 	.read_color_data({ Red_level, Green_level, Blue_level })
