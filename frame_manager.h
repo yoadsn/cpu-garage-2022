@@ -1,7 +1,7 @@
 localparam	SOURCE_SEL_ADDRW			  =	2;
 
-localparam	DRAW_WIDTH = 11'd640;
-localparam	DRAW_HEIGHT = 10'd480;
+localparam  DRAW_WIDTH = 11'd640;
+localparam  DRAW_HEIGHT = 10'd480;
 localparam  DRAW_WIDTH_ADDRW = $clog2(DRAW_WIDTH);
 localparam  DRAW_HEIGHT_ADDRW = $clog2(DRAW_HEIGHT);
 

@@ -67,6 +67,11 @@ always_ff @ (posedge clk or negedge resetN) begin
           column <= column + 1;
         end
       end
+
+      default: begin
+        column <= column;
+        row <= row;
+      end
     endcase
   end
 end

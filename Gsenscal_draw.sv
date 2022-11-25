@@ -57,28 +57,32 @@ always_ff @ (posedge clk) begin
   draw_state <= draw_state_next;
 end
 
-
+shortint mark_x;
+logic [DRAW_WIDTH_ADDRW-1:0] mark_center_x;
+shortint mark_y;
+logic [DRAW_HEIGHT_ADDRW-1:0] mark_center_y;
 logic on_mark;
 logic on_cross;
-always_comb begin
-  on_cross =
-    (column >= DRAW_WIDTH_HALF - 1 && column <= DRAW_WIDTH_HALF) ||
-    (row >= DRAW_HEIGHT_HALF - 1 && row <= DRAW_HEIGHT_HALF);
-  on_mark =
-    (column >= DRAW_WIDTH_HALF - 1 - MARK_SIZE + mark_x && column <= DRAW_WIDTH_HALF + MARK_SIZE + mark_x) &&
-    (row >= DRAW_HEIGHT_HALF - 1 - MARK_SIZE + mark_y && row <= DRAW_HEIGHT_HALF + MARK_SIZE + mark_y);
-end
 
-shortint mark_x;
-shortint mark_y;
 always_ff @ (posedge clk or negedge resetN) begin
   if (~resetN) begin
     mark_x <= 0;
     mark_y <= 0;
   end else begin
     mark_x <= ~tilt_direction_x ? tilt_amount_x << TILE_SCALE_FACTOR : -(tilt_amount_x << TILE_SCALE_FACTOR);
-	 mark_y <= ~tilt_direction_y ? tilt_amount_y << TILE_SCALE_FACTOR : -(tilt_amount_y << TILE_SCALE_FACTOR);
+    mark_y <= ~tilt_direction_y ? tilt_amount_y << TILE_SCALE_FACTOR : -(tilt_amount_y << TILE_SCALE_FACTOR);
   end
+end
+
+always_comb begin
+  on_cross =
+    (column >= DRAW_WIDTH_HALF - 1 && column <= DRAW_WIDTH_HALF) ||
+    (row >= DRAW_HEIGHT_HALF - 1 && row <= DRAW_HEIGHT_HALF);
+  mark_center_x = DRAW_WIDTH_HALF + mark_x;
+  mark_center_y = DRAW_HEIGHT_HALF + mark_y;
+  on_mark =
+    (column >= mark_center_x - 1 - MARK_SIZE && column <= mark_center_x + MARK_SIZE) &&
+    (row >= mark_center_y - 1 - MARK_SIZE && row <= mark_center_y + MARK_SIZE);
 end
 
 logic [DRAW_WIDTH_ADDRW-1:0] column;
