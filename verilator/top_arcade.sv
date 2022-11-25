@@ -143,7 +143,6 @@ module Top_template(
 
 `include "frame_manager.h"
 
-localparam COLOR_DEPTH = 9;
 localparam COLOR_CH_WIDTH = COLOR_DEPTH / 3;
 
 //=======================================================
@@ -203,9 +202,7 @@ assign VGA_B = vga_b_wire;
 
 
 // Screens control (LCD and VGA)
-Screens_dispaly #(
-	.COLOR_DEPTH(COLOR_DEPTH)
-) Screen_control(
+Screens_dispaly Screen_control(
 	.clk_25(clk_25),
 	.clk_100(clk_100),
 	.Red_level(Red_level),
@@ -300,12 +297,12 @@ Gsensemu_pars gsens_pars_y	(
 						);
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
-wire [31:0] bf_x_write_addr, bf_y_write_addr;
+wire [DRAW_WIDTH_ADDRW-1:0] bf_x_write_addr;
+wire [DRAW_HEIGHT_ADDRW-1:0] bf_y_write_addr;
 wire bf_write_active, bf_write_awaited, bf_write_transparent;
 wire [SOURCE_SEL_ADDRW-1:0] bf_write_source_sel;
 Frame_manager #(
-	.MAX_WRITE_SOURCE(2),
-	.COLOR_DEPTH(COLOR_DEPTH)
+	.MAX_WRITE_SOURCE(2)
 ) fb_mgr (
 	.clk(clk_25),
 	.resetN(~A),
@@ -326,8 +323,7 @@ Frame_manager #(
 
 Bkg_draw #(
 	.BKG_COLOR(9'b000000000),
-	.SOURCE_ID(0),
-	.COLOR_DEPTH(COLOR_DEPTH)
+	.SOURCE_ID(0)
 ) bkg(
 	.clk(clk_25),
 	.resetN(~A),
@@ -342,8 +338,7 @@ Bkg_draw #(
 
 
 Starfield_unit	#(
-	.SOURCE_ID(1),
-	.COLOR_DEPTH(COLOR_DEPTH)
+	.SOURCE_ID(1)
 ) Starfield_unit_inst(
 	.clk(clk_25),
 	.resetN(~A),
@@ -367,7 +362,6 @@ Starfield_unit	#(
 
 Gsenscal_draw #(
 	.SOURCE_ID(2),
-	.COLOR_DEPTH(COLOR_DEPTH),
 	.TILE_SCALE_FACTOR(3)
 ) gsens_cal (
 	.clk(clk_25),
