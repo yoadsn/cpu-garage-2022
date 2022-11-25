@@ -345,6 +345,15 @@ Gsens_pars gsens_pars_y	(
 );
 */
 
+logic frame_sys;  // start of new frame (system clock domain)
+xd xd_frame (
+	.clk_src(clk_25),
+	.clk_dst(clk_100),
+	.flag_src(frame),
+	.flag_dst(frame_sys)
+);
+
+
 
 wire [COLOR_DEPTH-1:0] bf_draw_data;
 wire [31:0] bf_x_write_addr, bf_y_write_addr;
@@ -355,7 +364,7 @@ Frame_manager #(
 ) fb_mgr (
 	.write_clk(clk_25),
 	.resetN(~A),
-	.frame,
+	.frame(frame_sys),
 	.write_color_data(bf_draw_data),
 	.write_transparent(bf_write_transparent),
 	.write_x_addr(bf_x_write_addr),
@@ -392,8 +401,6 @@ Starfield_unit	#(
 ) Starfield_unit_inst(
 	.clk(clk_25),
 	.resetN(~A),
-	.frame(frame),
-	.SW,
 
 	.write_color_data(bf_draw_data),
 	.write_transparent(bf_write_transparent),
