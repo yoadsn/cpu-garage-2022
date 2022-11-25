@@ -392,7 +392,6 @@ Starfield_unit	#(
 ) Starfield_unit_inst(
 	.clk(clk_25),
 	.resetN(~A),
-	.frame(frame),
 	.SW,
 
 	.write_color_data(bf_draw_data),

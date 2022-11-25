@@ -4,7 +4,6 @@ module Starfield_unit #(
 )(	
 		input		clk,
 		input		resetN,
-		input		frame,
 		input		[9:0] SW,
 		
 		input		[3:0]	tilt_amount_x,
