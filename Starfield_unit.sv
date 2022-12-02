@@ -278,6 +278,8 @@ module Starfield_unit #(
 				REPLACE_DONE: begin
 					lfsr_en <= 0;
 				end
+
+				default: ;
 			endcase
 		end
 	end
