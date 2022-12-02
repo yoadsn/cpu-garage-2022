@@ -1,6 +1,5 @@
 module Starfield_unit #(
-	parameter SOURCE_ID = 0,
-	parameter STAR_COLOR = 9'b111111111
+	parameter SOURCE_ID = SOURCE_SEL_ADDRW'(0)
 )(	
 		input		clk,
 		input		resetN,
@@ -45,13 +44,13 @@ module Starfield_unit #(
 	localparam LSFR_ADDRW = 15;
 	localparam LSFR_HALF_RANGE = {1'b1, {(LSFR_ADDRW - 1){1'b0}}}; // 1 SHL LSFR_ADDRW-1 times
 
+	wire source_selected = write_source_sel == SOURCE_ID; 
+
 	// (Stars Count) X (x or y or z) X (position within star space)
 	// TODO - why do we need extra 2 bits here to lose the "center artifact?"
 	shortint star_locs_x [0:STARS_COUNT-1];
 	shortint star_locs_y [0:STARS_COUNT-1];
 	shortint star_locs_z [0:STARS_COUNT-1];
-
-	int dbg_where;
 
 	logic lfsr_en;
 	logic lfsr_reset;
@@ -92,15 +91,16 @@ module Starfield_unit #(
 			.sreg(lfsr_z)
 	);
 
-	enum {
-		INIT_STARS_SEED,
+	typedef enum logic [2:0] {
+  		INIT_STARS_SEED,
 		INIT_STARS,
 		INIT_STARS_DONE,
 		PROJECT_STARS,
 		REPLACE_STARS,
 		REPLACE_DONE,
 		DRAW_STARS
-	} sf_state, sf_state_next;
+	} stateType;
+	stateType sf_state, sf_state_next;
 	logic [STARS_ADDRW-1:0] star_addr, star_addr_next;
 	always_comb begin
 		star_addr_next = 0;
@@ -113,7 +113,7 @@ module Starfield_unit #(
 
 			INIT_STARS: begin
 				sf_state_next = star_addr < STARS_COUNT - 1 ? INIT_STARS : INIT_STARS_DONE;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + 1 : 0;
+				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			INIT_STARS_DONE: begin
@@ -122,38 +122,37 @@ module Starfield_unit #(
 
 			PROJECT_STARS: begin
 				sf_state_next = star_addr < STARS_COUNT - 1 ? PROJECT_STARS : REPLACE_STARS;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + 1 : 0;
+				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			REPLACE_STARS: begin
 				sf_state_next = star_addr < STARS_COUNT - 1 ? REPLACE_STARS : REPLACE_DONE;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + 1 : 0;
+				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			REPLACE_DONE: begin
-				sf_state_next = write_source_sel == SOURCE_ID && write_awaited ? DRAW_STARS : REPLACE_DONE;
+				sf_state_next = source_selected && write_awaited ? DRAW_STARS : REPLACE_DONE;
 			end
 
 			DRAW_STARS: begin
 				sf_state_next = DRAW_STARS;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + 1 : 0;
+				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 				if (star_addr == STARS_COUNT - 1) sf_state_next = PROJECT_STARS;
 			end
 
 			default: sf_state_next = INIT_STARS_SEED;
 		endcase
-
-		if (!resetN) begin
-			sf_state_next = INIT_STARS_SEED;
-			star_addr_next = 0;
-		end
 	end
 
 	// update starfield state
 	always_ff @(posedge clk) begin
-		sf_state <= sf_state_next;
-		star_addr <= star_addr_next;
-		//dbg_where <= active_star_draw_buffer_next;
+		if (~resetN) begin
+			sf_state <= INIT_STARS_SEED;
+			star_addr <= 0;
+		end else begin
+			sf_state <= sf_state_next;
+			star_addr <= star_addr_next;
+		end
 	end
 
 	// For each star - which screen x,y to draw on?
@@ -188,101 +187,112 @@ module Starfield_unit #(
 
 	// Draw Starfield onto Active framebuffer
 	always_ff @ (posedge clk) begin
-		case (sf_state)
-			INIT_STARS_SEED: begin
-				lfsr_reset <= 1;
-			end
-
-			INIT_STARS: begin
-				lfsr_reset <= 0;
-				lfsr_en <= 1;
-				// Initialize curr star with 3d loc
-				star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF; // x
-				star_locs_y[star_addr] <=  (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF; // y
-				star_locs_z[star_addr] <=  lfsr_z % SPACE_DEPTH; // z
-			end
-
-			INIT_STARS_DONE: begin
-				lfsr_en <= 0;
-			end
-
-			PROJECT_STARS: begin
-				if (star_locs_x[star_addr] >= 0) begin
-					stars_draw_buffer_x[star_addr] <= DRAW_WIDTH_HALF + (star_locs_x[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
-				end else begin
-					stars_draw_buffer_x[star_addr] <= DRAW_WIDTH_HALF - (0 - star_locs_x[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
+		if (~resetN) begin
+			lfsr_reset <= 0;
+			lfsr_en <= 0;
+		end else begin
+			case (sf_state)
+				INIT_STARS_SEED: begin
+					lfsr_reset <= 1;
+					lfsr_en <= 1;
 				end
 
-				if (star_locs_y[star_addr] >= 0) begin
-					stars_draw_buffer_y[star_addr] <= DRAW_HEIGHT_HALF + star_locs_y[star_addr] * FOCAL_LENGTH / star_locs_z[star_addr];
-				end else begin
-					stars_draw_buffer_y[star_addr] <= DRAW_HEIGHT_HALF - (0 - star_locs_y[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
-					end
-
-				//stars_draw_buffer_c[star_addr] <= (star_locs_z[star_addr] <= SPACE_DEPTH * 2 / 3);
-				stars_draw_buffer_c[star_addr] <= star_locs_z[star_addr] < SPACE_DEPTH / 2 ? 3'b111 :
-																					star_locs_z[star_addr] < SPACE_DEPTH * 2 / 3 ? 3'b110 :
-																					3'b100;
-																					
-
-				//stars_draw_buffer_c[star_addr] <= 3'b111;
-				
-				/*case (star_addr[1:0])
-					2'b00: begin
-						stars_draw_buffer_x[star_addr] <= 60;
-						stars_draw_buffer_y[star_addr] <= 0;
-					end
-					2'b01: begin
-						stars_draw_buffer_x[star_addr] <= 10;
-						stars_draw_buffer_y[star_addr] <= 20;
-					end
-					2'b10: begin
-						stars_draw_buffer_x[star_addr] <= 20;
-						stars_draw_buffer_y[star_addr] <= 40;
-					end
-					2'b11: begin
-						stars_draw_buffer_x[star_addr] <= 30;
-						stars_draw_buffer_y[star_addr] <= 60;
-					end
-				endcase*/
-			end
-
-			REPLACE_STARS: begin
-				lfsr_en <= 1;
-
-				if (space_outbound_star_x_neg) begin
-					star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH_HALF);
-				end else if (space_outbound_star_x_pos) begin
-					star_locs_x[star_addr] <= 0 - (lfsr_x % SPACE_WIDTH_HALF);
-				end else if (space_outbound_star_y_neg) begin
-					star_locs_y[star_addr] <= (lfsr_y % SPACE_HEIGHT_HALF);
-				end else if (space_outbound_star_y_pos) begin
-					star_locs_y[star_addr] <= 0 - (lfsr_y % SPACE_HEIGHT_HALF);
-				end else begin
-					star_locs_x[star_addr] <= tilt_direction_x ? star_locs_x[star_addr] + tilt_amount_x * STARS_X_SPEED : star_locs_x[star_addr] - tilt_amount_x * STARS_X_SPEED;
-					star_locs_y[star_addr] <= tilt_direction_y ? star_locs_y[star_addr] + tilt_amount_y * STARS_Y_SPEED : star_locs_y[star_addr] - tilt_amount_y * STARS_Y_SPEED;
+				INIT_STARS: begin
+					lfsr_reset <= 0;
+					// Initialize curr star with 3d loc
+					star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF; // x
+					star_locs_y[star_addr] <=  (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF; // y
+					star_locs_z[star_addr] <=  lfsr_z % SPACE_DEPTH; // z
 				end
-				
-				if (space_outbound_star_z_neg || star_out_of_draw_range) begin
-					star_locs_z[star_addr] <= SPACE_DEPTH - lfsr_z % (SPACE_DEPTH / 3);
-					star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF;
-					star_locs_y[star_addr] <= (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF;
-				end else begin
-					star_locs_z[star_addr] <= star_locs_z[star_addr] - STARS_Z_SPEED;
-				end
-			end
 
-			REPLACE_DONE: begin
-				lfsr_en <= 0;
-			end
-		endcase
+				INIT_STARS_DONE: begin
+					lfsr_en <= 0;
+				end
+
+				PROJECT_STARS: begin
+					if (star_locs_x[star_addr] >= 0) begin
+						stars_draw_buffer_x[star_addr] <= DRAW_WIDTH_HALF + (star_locs_x[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
+					end else begin
+						stars_draw_buffer_x[star_addr] <= DRAW_WIDTH_HALF - (0 - star_locs_x[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
+					end
+
+					if (star_locs_y[star_addr] >= 0) begin
+						stars_draw_buffer_y[star_addr] <= DRAW_HEIGHT_HALF + star_locs_y[star_addr] * FOCAL_LENGTH / star_locs_z[star_addr];
+					end else begin
+						stars_draw_buffer_y[star_addr] <= DRAW_HEIGHT_HALF - (0 - star_locs_y[star_addr]) * FOCAL_LENGTH / star_locs_z[star_addr];
+						end
+
+					//stars_draw_buffer_c[star_addr] <= (star_locs_z[star_addr] <= SPACE_DEPTH * 2 / 3);
+					stars_draw_buffer_c[star_addr] <= star_locs_z[star_addr] < SPACE_DEPTH / 2 ? 3'b111 :
+																						star_locs_z[star_addr] < SPACE_DEPTH * 2 / 3 ? 3'b110 :
+																						3'b100;
+																						
+
+					//stars_draw_buffer_c[star_addr] <= 3'b111;
+					
+					/*case (star_addr[1:0])
+						2'b00: begin
+							stars_draw_buffer_x[star_addr] <= 60;
+							stars_draw_buffer_y[star_addr] <= 0;
+						end
+						2'b01: begin
+							stars_draw_buffer_x[star_addr] <= 10;
+							stars_draw_buffer_y[star_addr] <= 20;
+						end
+						2'b10: begin
+							stars_draw_buffer_x[star_addr] <= 20;
+							stars_draw_buffer_y[star_addr] <= 40;
+						end
+						2'b11: begin
+							stars_draw_buffer_x[star_addr] <= 30;
+							stars_draw_buffer_y[star_addr] <= 60;
+						end
+					endcase*/
+				end
+
+				REPLACE_STARS: begin
+					lfsr_en <= 1;
+
+					if (space_outbound_star_x_neg) begin
+						star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH_HALF);
+					end else if (space_outbound_star_x_pos) begin
+						star_locs_x[star_addr] <= 0 - (lfsr_x % SPACE_WIDTH_HALF);
+					end else if (space_outbound_star_y_neg) begin
+						star_locs_y[star_addr] <= (lfsr_y % SPACE_HEIGHT_HALF);
+					end else if (space_outbound_star_y_pos) begin
+						star_locs_y[star_addr] <= 0 - (lfsr_y % SPACE_HEIGHT_HALF);
+					end else begin
+						star_locs_x[star_addr] <= tilt_direction_x ? star_locs_x[star_addr] + tilt_amount_x * STARS_X_SPEED : star_locs_x[star_addr] - tilt_amount_x * STARS_X_SPEED;
+						star_locs_y[star_addr] <= tilt_direction_y ? star_locs_y[star_addr] + tilt_amount_y * STARS_Y_SPEED : star_locs_y[star_addr] - tilt_amount_y * STARS_Y_SPEED;
+					end
+					
+					if (space_outbound_star_z_neg || star_out_of_draw_range) begin
+						star_locs_z[star_addr] <= SPACE_DEPTH - lfsr_z % (SPACE_DEPTH / 3);
+						star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF;
+						star_locs_y[star_addr] <= (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF;
+					end else begin
+						star_locs_z[star_addr] <= star_locs_z[star_addr] - STARS_Z_SPEED;
+					end
+				end
+
+				REPLACE_DONE: begin
+					lfsr_en <= 0;
+				end
+			endcase
+		end
 	end
 
-	assign write_active = write_source_sel == SOURCE_ID ? (sf_state == DRAW_STARS) : 'z;
-	//assign write_color_data = write_source_sel == SOURCE_ID ? (stars_draw_buffer_c[star_addr] ? STAR_COLOR : 9'b011011100) : 'z;
-	assign write_color_data = write_source_sel == SOURCE_ID ? star_draw_color : 'z;
-	assign write_x_addr = write_source_sel == SOURCE_ID ? stars_draw_buffer_x[star_addr] : 'z;
-	assign write_y_addr = write_source_sel == SOURCE_ID ? stars_draw_buffer_y[star_addr] : 'z;
-	assign write_transparent = write_source_sel == SOURCE_ID ? star_out_of_draw_range : 'z;
+	wire write_active_int = sf_state == DRAW_STARS;
+	wire [COLOR_DEPTH-1:0] write_color_data_int = star_draw_color;
+	wire [DRAW_WIDTH_ADDRW-1:0] write_x_addr_int = stars_draw_buffer_x[star_addr];
+	wire [DRAW_HEIGHT_ADDRW-1:0] write_y_addr_int = stars_draw_buffer_y[star_addr];
+	wire write_transparent_int = star_out_of_draw_range ? 1'b1 : 1'b0;
+
+	
+	assign write_active = source_selected ? write_active_int : 'z;
+	assign write_color_data = source_selected ? write_color_data_int : 'z;
+	assign write_x_addr = source_selected ? write_x_addr_int : 'z;
+	assign write_y_addr = source_selected ? write_y_addr_int : 'z;
+	assign write_transparent = source_selected ? write_transparent_int : 'z;
 
 endmodule

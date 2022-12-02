@@ -15,6 +15,8 @@ module Bkg_draw #(
 
 `include "frame_manager.h"
 
+wire source_selected = write_source_sel == SOURCE_ID; 
+
 typedef enum logic [1:0] {
   AWAIT_WRITE,
   ACTIVATE_WRITE,
@@ -27,7 +29,7 @@ always_comb begin
 
   case (draw_state)
     AWAIT_WRITE: begin
-      draw_state_next = write_awaited && write_source_sel == SOURCE_ID ? ACTIVATE_WRITE : AWAIT_WRITE;
+      draw_state_next = write_awaited && source_selected ? ACTIVATE_WRITE : AWAIT_WRITE;
     end
     ACTIVATE_WRITE: begin
       draw_state_next = WRITE_ACTIVE;
@@ -56,7 +58,7 @@ always_ff @ (posedge clk or negedge resetN) begin
     case (draw_state)
       ACTIVATE_WRITE: begin
         column <= FIRST_COL;
-        row <= FIRST_COL;
+        row <= FIRST_ROW;
       end
 
       WRITE_ACTIVE: begin
@@ -76,10 +78,16 @@ always_ff @ (posedge clk or negedge resetN) begin
   end
 end
 
-assign write_active = write_source_sel == SOURCE_ID ? (draw_state == WRITE_ACTIVE) : 'z;
-assign write_color_data = write_source_sel == SOURCE_ID ? BKG_COLOR : 'z;
-assign write_x_addr = write_source_sel == SOURCE_ID && column < DRAW_WIDTH ? column : 'z;
-assign write_y_addr = write_source_sel == SOURCE_ID && row < DRAW_HEIGHT ? row : 'z;
-assign write_transparent = write_source_sel == SOURCE_ID ? 1'b0 : 'z;
+wire write_active_int = draw_state == WRITE_ACTIVE;
+wire [COLOR_DEPTH-1:0] write_color_data_int = BKG_COLOR;
+wire [DRAW_WIDTH_ADDRW-1:0] write_x_addr_int = column;
+wire [DRAW_HEIGHT_ADDRW-1:0] write_y_addr_int = row;
+wire write_transparent_int = column < DRAW_WIDTH && row < DRAW_HEIGHT ? 1'b0 : 1'b1;
+
+assign write_active = source_selected ? write_active_int : 'z;
+assign write_color_data = source_selected ? write_color_data_int : 'z;
+assign write_x_addr = source_selected ? write_x_addr_int : 'z;
+assign write_y_addr = source_selected ? write_y_addr_int : 'z;
+assign write_transparent = source_selected ? write_transparent_int : 'z;
 
 endmodule
