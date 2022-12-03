@@ -157,9 +157,8 @@ module Starfield_unit #(
 			end
 
 			DRAW_STARS: begin
-				sf_state_next = DRAW_STARS;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
-				if (star_addr == STARS_COUNT - 1) sf_state_next = LOAD_STAR_LOCS;
+				sf_state_next = star_addr < STARS_COUNT ? DRAW_STARS : LOAD_STAR_LOCS;
+				star_addr_next = star_addr < STARS_COUNT ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			default begin
