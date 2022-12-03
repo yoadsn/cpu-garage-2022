@@ -114,7 +114,8 @@ module Starfield_unit #(
 		STORE_STAR_DRAW,
 
 		AWAIT_DRAW,
-		DRAW_STARS
+		DRAW_STARS,
+		DRAW_STARS_DONE
 	} stateType;
 	stateType sf_state, sf_state_next;
 	logic [STARS_ADDRW-1:0] star_addr, star_addr_next;
@@ -128,8 +129,8 @@ module Starfield_unit #(
 			end
 
 			INIT_STARS: begin
-				sf_state_next = star_addr < STARS_COUNT - 1 ? INIT_STARS : INIT_STARS_DONE;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
+				sf_state_next = has_next_star ? INIT_STARS : INIT_STARS_DONE;
+				star_addr_next = has_next_star ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			INIT_STARS_DONE: begin
@@ -149,8 +150,8 @@ module Starfield_unit #(
 				sf_state_next = STORE_STAR_DRAW;
 			end
 			STORE_STAR_DRAW: begin
-				sf_state_next = star_addr < STARS_COUNT - 1 ? LOAD_STAR_LOCS : AWAIT_DRAW;
-				star_addr_next = star_addr < STARS_COUNT - 1 ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
+				sf_state_next = has_next_star ? LOAD_STAR_LOCS : AWAIT_DRAW;
+				star_addr_next = has_next_star ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
 			end
 
 			AWAIT_DRAW: begin
@@ -158,8 +159,12 @@ module Starfield_unit #(
 			end
 
 			DRAW_STARS: begin
-				sf_state_next = star_addr < STARS_COUNT ? DRAW_STARS : LOAD_STAR_LOCS;
-				star_addr_next = star_addr < STARS_COUNT ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
+				sf_state_next = has_next_star ? DRAW_STARS : DRAW_STARS_DONE;
+				star_addr_next = has_next_star ? star_addr + STARS_ADDRW'(1) : STARS_ADDRW'(0);
+			end
+
+			DRAW_STARS_DONE: begin
+				sf_state_next = LOAD_STAR_LOCS;
 			end
 
 			default begin
@@ -179,6 +184,8 @@ module Starfield_unit #(
 			star_addr <= star_addr_next;
 		end
 	end
+
+	logic has_next_star = star_addr < STARS_COUNT - 1;
 
 	// For each star - which screen x,y to draw on?
 	// Create a buffer until draw state (pipeline the projections)
@@ -311,7 +318,7 @@ module Starfield_unit #(
 		end
 	end
 
-	wire write_active_int = sf_state == DRAW_STARS;
+	wire write_active_int = sf_state == DRAW_STARS || sf_state == DRAW_STARS_DONE;
 	wire [COLOR_DEPTH-1:0] write_color_data_int = star_draw_color_t;
 	wire [DRAW_WIDTH_ADDRW-1:0] write_x_addr_int = stars_draw_t_x;
 	wire [DRAW_HEIGHT_ADDRW-1:0] write_y_addr_int = stars_draw_t_y;
