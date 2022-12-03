@@ -93,6 +93,7 @@ module Starfield_unit #(
 	);
 
 
+	wire has_next_star = star_addr < STARS_COUNT - 1;
 	shortint star_loc_t_x;
 	shortint star_loc_t_y;
 	shortint star_loc_t_z;
@@ -185,7 +186,6 @@ module Starfield_unit #(
 		end
 	end
 
-	logic has_next_star = star_addr < STARS_COUNT - 1;
 
 	// For each star - which screen x,y to draw on?
 	// Create a buffer until draw state (pipeline the projections)
