@@ -32,16 +32,18 @@ module Starfield_unit #(
 	localparam STARS_Y_SPEED = 10; // Y axis change per frame
 	localparam STARS_Z_SPEED = 5; // Z axis change per frame
 	localparam DRAW_TO_SPACE_FACTOR = 40;
-	localparam SPACE_WIDTH = DRAW_WIDTH * DRAW_TO_SPACE_FACTOR;
+	localparam SPACE_WIDTH = 1 << (LSFR_ADDRW - 1);
+	localparam SPACE_WIDTH_OFF_LIMIT = SPACE_WIDTH - 100;
 	localparam signed SPACE_WIDTH_HALF = SPACE_WIDTH >> 1;
-	localparam SPACE_HEIGHT = DRAW_HEIGHT * DRAW_TO_SPACE_FACTOR;
+	localparam SPACE_HEIGHT = 1 << (LSFR_ADDRW - 1);
+	localparam SPACE_HEIGHT_OFF_LIMIT = SPACE_HEIGHT - 100;
 	localparam signed SPACE_HEIGHT_HALF = SPACE_HEIGHT >> 1;
 	localparam SPACE_DEPTH = 1000;
 	localparam SPACE_DEPTH_ADDRW = $clog2(SPACE_DEPTH);
 	// Width is larger than height - so should be enough to contain both coords
-	localparam signed FOCAL_LENGTH = 10;
+	localparam signed FOCAL_LENGTH = 7;
 	
-	localparam LSFR_ADDRW = 15;
+	localparam LSFR_ADDRW = 16;
 	localparam LSFR_HALF_RANGE = {1'b1, {(LSFR_ADDRW - 1){1'b0}}}; // 1 SHL LSFR_ADDRW-1 times
 
 	wire source_selected = write_source_sel == SOURCE_ID; 
@@ -55,9 +57,9 @@ module Starfield_unit #(
 	logic lfsr_en;
 	logic lfsr_reset;
 	logic [LSFR_ADDRW-1:0] lfsr_x;
-	lfsr #(  // Up to about 4000
+	lfsr #(
 			.LEN(LSFR_ADDRW),
-			.TAPS(15'b110000000000000)
+			.TAPS(16'b1101000000001000)
 	) lsfr_x_loc (
 			.clk(clk),
 			.rst(lfsr_reset),
@@ -67,10 +69,9 @@ module Starfield_unit #(
 	);
 
 	logic [LSFR_ADDRW-1:0] lfsr_y;
-	lfsr #(  // Up to about 4000
+	lfsr #(
 			.LEN(LSFR_ADDRW),
-			.TAPS(15'b110000000000000)
-			//.TAPS(12'b111000001000)
+			.TAPS(16'b1101000000001000)
 	) lsfr_y_loc (
 			.clk(clk),
 			.rst(lfsr_reset),
@@ -80,7 +81,7 @@ module Starfield_unit #(
 	);
 
 	logic [10:0] lfsr_z;
-	lfsr #(  // Up to about 2000
+	lfsr #(
 			.LEN(11),
 			.TAPS(11'b10100000000)
 	) lsfr_z_loc (
@@ -199,10 +200,10 @@ module Starfield_unit #(
 		draw_outbound_star_y_neg ||
 		draw_outbound_star_y_pos;
 	
-	wire space_outbound_star_x_neg = star_loc_t_x < -SPACE_WIDTH_HALF;
-	wire space_outbound_star_x_pos = star_loc_t_x > SPACE_WIDTH_HALF;
-	wire space_outbound_star_y_neg = star_loc_t_y < -SPACE_HEIGHT_HALF;
-	wire space_outbound_star_y_pos = star_loc_t_y > SPACE_HEIGHT_HALF;
+	wire space_outbound_star_x_neg = star_loc_t_x < -SPACE_WIDTH_OFF_LIMIT;
+	wire space_outbound_star_x_pos = star_loc_t_x > SPACE_WIDTH_OFF_LIMIT;
+	wire space_outbound_star_y_neg = star_loc_t_y < -SPACE_HEIGHT_OFF_LIMIT;
+	wire space_outbound_star_y_pos = star_loc_t_y > SPACE_HEIGHT_OFF_LIMIT;
 	
 	wire space_outbound_star_z_neg = star_loc_t_z <= STARS_Z_SPEED;
 
@@ -221,8 +222,8 @@ module Starfield_unit #(
 				INIT_STARS: begin
 					lfsr_reset <= 0;
 					// Initialize curr star with 3d loc
-					star_locs_x[star_addr] <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF; // x
-					star_locs_y[star_addr] <=  (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF; // y
+					star_locs_x[star_addr] <= lfsr_x; // x
+					star_locs_y[star_addr] <=  lfsr_y; // y
 					star_locs_z[star_addr] <=  lfsr_z % SPACE_DEPTH; // z
 				end
 
@@ -271,14 +272,10 @@ module Starfield_unit #(
 				end
 
 				REPLACE_STAR: begin
-					if (space_outbound_star_x_neg) begin
-						star_loc_t_x <= (lfsr_x % SPACE_WIDTH_HALF);
-					end else if (space_outbound_star_x_pos) begin
-						star_loc_t_x <= 0 - (lfsr_x % SPACE_WIDTH_HALF);
-					end else if (space_outbound_star_y_neg) begin
-						star_loc_t_y <= (lfsr_y % SPACE_HEIGHT_HALF);
-					end else if (space_outbound_star_y_pos) begin
-						star_loc_t_y <= 0 - (lfsr_y % SPACE_HEIGHT_HALF);
+					if (space_outbound_star_x_neg || space_outbound_star_x_pos) begin
+						star_loc_t_x <= lfsr_x;
+					end else if (space_outbound_star_y_neg || space_outbound_star_y_pos) begin
+						star_loc_t_y <= lfsr_y;
 					end else begin
 						star_loc_t_x <= tilt_direction_x ? star_loc_t_x + tilt_amount_x * STARS_X_SPEED : star_loc_t_x - tilt_amount_x * STARS_X_SPEED;
 						star_loc_t_y <= tilt_direction_y ? star_loc_t_y + tilt_amount_y * STARS_Y_SPEED : star_loc_t_y - tilt_amount_y * STARS_Y_SPEED;
@@ -286,8 +283,8 @@ module Starfield_unit #(
 					
 					if (space_outbound_star_z_neg || star_out_of_draw_range) begin
 						star_loc_t_z <= SPACE_DEPTH - lfsr_z % (SPACE_DEPTH / 3);
-						star_loc_t_x <= (lfsr_x % SPACE_WIDTH) - SPACE_WIDTH_HALF;
-						star_loc_t_y <= (lfsr_y % SPACE_HEIGHT) - SPACE_HEIGHT_HALF;
+						star_loc_t_x <= lfsr_x;
+						star_loc_t_y <= lfsr_y;
 					end else begin
 						star_loc_t_z <= star_loc_t_z - STARS_Z_SPEED;
 					end
